@@ -1,7 +1,7 @@
 name: Terraform Infra + App Deploy
 
 on:
-    workflow_dispatch
+  workflow_dispatch:
 
 jobs:
   terraform:
