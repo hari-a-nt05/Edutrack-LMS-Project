@@ -6,8 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start -H 0.0.0.0 -p 3000",
-    "lint": "next lint",
-    "migrate": "npx drizzle-kit push --config drizzle.config.js"
+    "lint": "next lint"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.5.0",
