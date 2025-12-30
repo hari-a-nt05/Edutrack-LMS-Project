@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
 
-    "migrate": "npx drizzle-kit push",
+    "migrate": "npx drizzle-kit push --config=drizzle.config.js",
     "generate": "drizzle-kit generate"
   },
   "dependencies": {
