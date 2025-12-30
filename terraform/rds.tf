@@ -7,10 +7,10 @@ resource "aws_db_instance" "postgres" {
   identifier = "${var.project_name}-db"
 
   engine         = "postgres"
-  instance_class = "db.t3.micro"
+  instance_class = "db.t4g.micro"
 
   allocated_storage = 20
-  storage_type      = "gp2"
+  storage_type      = "gp3"
 
   db_name  = var.db_name
   username = var.db_user
@@ -21,7 +21,7 @@ resource "aws_db_instance" "postgres" {
 
   publicly_accessible = false
 
-  backup_retention_period = 7
+  backup_retention_period = 0
   skip_final_snapshot     = true
   deletion_protection     = false
 
