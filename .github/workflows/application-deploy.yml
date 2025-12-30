@@ -1,8 +1,8 @@
-name: Frontend CI/CD Deployment
+name: CI/CD Deployment
 
 on:
   workflow_dispatch:   # Manual trigger only (SAFE)
-  
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -20,6 +20,16 @@ jobs:
 
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
+
+      # 🔹 ADDED STEP: Install dependencies (required for migration)
+      - name: Install dependencies
+        run: npm install
+
+      # 🔹 ADDED STEP: Run DB migrations (SAFE & CONTROLLED)
+      - name: Run DB migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npm run migrate
 
       - name: Build and push Docker image
         env:
