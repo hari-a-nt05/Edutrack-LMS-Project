@@ -45,8 +45,9 @@ next-env.d.ts
 public/TutorAi Sample Video.mp4
 *.mp4
 
-# pro 
+# prod
 backups/
 nginx/logs/
 nginx/ssl/*.pem
 nginx/ssl/*.key
+    
