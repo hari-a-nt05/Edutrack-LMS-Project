@@ -1,37 +1,34 @@
-name: CI/CD Deployment
+name: ETLACD-5 Frontend CI/CD
 
 on:
-  workflow_dispatch:   # Manual trigger only (SAFE)
+  push:
+    branches:
+      - main
 
 jobs:
   deploy:
+    name: Build & Deploy Frontend to ECS
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout source code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
+      # 2️⃣ Configure AWS credentials
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      # 3️⃣ Login to Amazon ECR
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      # 🔹 ADDED STEP: Install dependencies (required for migration)
-      - name: Install dependencies
-        run: npm install
-
-      # 🔹 ADDED STEP: Run DB migrations (SAFE & CONTROLLED)
-      - name: Run DB migrations
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: npm run migrate
-
-      - name: Build and push Docker image
+      # 4️⃣ Build and Push Docker Image
+      - name: Build and Push Docker Image
         env:
           AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
@@ -41,11 +38,12 @@ jobs:
           docker build -t $IMAGE_URI .
           docker push $IMAGE_URI
 
-      - name: Force ECS service redeploy
+      # 5️⃣ Force ECS Service Redeployment
+      - name: Deploy to ECS
         env:
-          AWS_REGION: ${{ secrets.AWS_REGION }}
           ECS_CLUSTER: ${{ secrets.ECS_CLUSTER }}
           ECS_SERVICE: ${{ secrets.ECS_SERVICE }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
         run: |
           aws ecs update-service \
             --cluster $ECS_CLUSTER \
