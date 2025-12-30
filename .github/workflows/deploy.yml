@@ -40,7 +40,15 @@ jobs:
           docker push $IMAGE_URI:$IMAGE_TAG
           docker push $IMAGE_URI:latest
 
-
+      - name: Run database migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          docker run --rm \
+            -e DATABASE_URL=$DATABASE_URL \
+            $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:${GITHUB_SHA::7} \
+            npm run migrate
+            
       - name: Force ECS new deployment
         run: |
           aws ecs update-service \
