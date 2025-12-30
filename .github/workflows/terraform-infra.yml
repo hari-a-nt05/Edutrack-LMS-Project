@@ -21,6 +21,9 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      - name: Clean Terraform cache
+        run: rm -rf .terraform
+
       - name: Terraform Init
         working-directory: terraform
         run: terraform init -reconfigure
