@@ -4,23 +4,23 @@ resource "aws_db_subnet_group" "db_subnets" {
 }
 
 resource "aws_db_instance" "postgres" {
-  identifier              = "${var.project_name}-db"
+  identifier = "${var.project_name}-db"
 
-  engine                  = "postgres"
-  engine_version          = "16.1"
-  instance_class          = "db.t3.micro"
+  engine         = "postgres"
+  engine_version = "16.1"
+  instance_class = "db.t3.micro"
 
-  allocated_storage       = 20
-  storage_type            = "gp2"
+  allocated_storage = 20
+  storage_type      = "gp2"
 
-  db_name                 = var.db_name
-  username                = var.db_user
-  password                = var.db_password
+  db_name  = var.db_name
+  username = var.db_user
+  password = var.db_password
 
-  db_subnet_group_name    = aws_db_subnet_group.db_subnets.name
-  vpc_security_group_ids  = [aws_security_group.rds_sg.id]
+  db_subnet_group_name   = aws_db_subnet_group.db_subnets.name
+  vpc_security_group_ids = [aws_security_group.rds_sg.id]
 
-  publicly_accessible     = false
+  publicly_accessible = false
 
   backup_retention_period = 7
   skip_final_snapshot     = false
