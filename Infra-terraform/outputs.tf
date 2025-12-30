@@ -21,11 +21,4 @@ output "frontend_url" {
   value = aws_lb.frontend_alb.dns_name
 }
 
-output "rds_endpoint" {
-  value = aws_db_instance.lms_db.endpoint
-}
-
-output "migration_task_definition" {
-  value = aws_ecs_task_definition.db_migration.family
-}
 
