@@ -32,29 +32,26 @@ output "ecs_service_name" {
 }
 
 output "ecs_task_definition_arn" {
-  description = "ECS task definition ARN (used for run-task migrations)"
-  value       = aws_ecs_task_definition.app.arn
+  description = "ECS task definition ARN"
+  value       = aws_ecs_task_definition.task.arn
 }
 
 ########################################
-# Networking outputs (Fargate runtime)
+# Networking outputs
 ########################################
 
 output "private_subnet_ids" {
-  description = "Private subnet IDs for ECS Fargate tasks"
-  value = [
-    aws_subnet.private_1.id,
-    aws_subnet.private_2.id
-  ]
+  description = "Private subnet IDs for ECS tasks"
+  value       = aws_subnet.private[*].id
 }
 
 output "ecs_security_group_id" {
-  description = "Security group ID attached to ECS tasks"
-  value       = aws_security_group.ecs.id
+  description = "ECS security group ID"
+  value       = aws_security_group.ecs_sg.id
 }
 
 ########################################
-# Optional / debugging helpers
+# Optional / debugging
 ########################################
 
 output "vpc_id" {
@@ -63,6 +60,6 @@ output "vpc_id" {
 }
 
 output "alb_security_group_id" {
-  description = "Security group ID of the ALB"
-  value       = aws_security_group.alb.id
+  description = "ALB security group ID"
+  value       = aws_security_group.alb_sg.id
 }
