@@ -83,20 +83,20 @@ resource "aws_ecs_task_definition" "task" {
         }
       ]
 
-    environment = [
-      {
-        name  = "DATABASE_URL"
-        value = "postgresql://${var.db_user}:${var.db_password}@${aws_db_instance.postgres.address}:5432/${var.db_name}?sslmode=require"
-      },
-      {
-        name  = "NODE_ENV"
-        value = "production"
-      },
-      {
-        name  = "NODE_TLS_REJECT_UNAUTHORIZED"
-        value = "0"
-      }
-    ]
+      environment = [
+        {
+          name  = "DATABASE_URL"
+          value = "postgresql://${var.db_user}:${var.db_password}@${aws_db_instance.postgres.address}:5432/${var.db_name}?sslmode=require"
+        },
+        {
+          name  = "NODE_ENV"
+          value = "production"
+        },
+        {
+          name  = "NODE_TLS_REJECT_UNAUTHORIZED"
+          value = "0"
+        }
+      ]
 
       logConfiguration = {
         logDriver = "awslogs"
