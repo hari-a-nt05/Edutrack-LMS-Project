@@ -29,7 +29,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 *.log
+<<<<<<< HEAD
 
+=======
+>>>>>>> 1669b30742863133c51b1c572e4f0de50930b312
 # env files (can opt-in for committing if needed)
 .env*
 !.env.local.example
@@ -46,7 +49,11 @@ next-env.d.ts
 public/TutorAi Sample Video.mp4
 *.mp4
 
+<<<<<<< HEAD
 # prod
+=======
+# production
+>>>>>>> 1669b30742863133c51b1c572e4f0de50930b312
 backups/
 nginx/logs/
 nginx/ssl/*.pem
