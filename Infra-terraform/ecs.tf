@@ -18,8 +18,7 @@ resource "aws_ecs_cluster" "cluster" {
 
 # Execution role (ECR pull + logs)
 resource "aws_iam_role" "ecs_exec_role" {
-  name = "${var.project_name}-ecs-exec-role"
-
+  name = "${var.project_name}-ecs-exec" 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -50,7 +49,7 @@ resource "aws_iam_role" "ecs_task_role" {
 # CloudWatch Logs
 #################################
 resource "aws_cloudwatch_log_group" "ecs" {
-  name              = "/ecs/${var.project_name}"
+  name = "/ecs/${var.project_name}"
   retention_in_days = 7
 }
 
@@ -133,8 +132,9 @@ resource "aws_ecs_service" "service" {
   }
 
   depends_on = [
-    aws_lb_listener.http
-  ]
+  aws_lb_listener.frontend_listener
+]
+
 }
 
 resource "aws_iam_role_policy_attachment" "ecs_exec_policy" {

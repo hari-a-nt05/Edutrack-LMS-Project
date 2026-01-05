@@ -19,17 +19,13 @@ RUN npm ci
 FROM base AS builder
 WORKDIR /app
 
-# Copy dependencies
-COPY --from=deps /app/node_modules ./node_modules
+# 👇 BUILD-TIME ENV (DUMMY VALUE)
+ARG DATABASE_URL
+ENV DATABASE_URL=${DATABASE_URL}
 
-# Copy source code
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# 🔑 TEMP DB URL (BUILD-TIME ONLY)
-# This prevents Next.js build from failing
-ENV DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy
-
-# Build Next.js (standalone)
 RUN npm run build
 
 # =========================
@@ -43,16 +39,14 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
-# Create non-root user
 RUN addgroup --system --gid 1001 nodejs \
  && adduser --system --uid 1001 nextjs
 
-# Runtime files
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# App runtime code
+# Runtime-required files
 COPY --from=builder /app/configs ./configs
 COPY --from=builder /app/lib ./lib
 COPY --from=builder /app/contexts ./contexts
@@ -61,7 +55,6 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/node_modules ./node_modules
 
 USER nextjs
-
 EXPOSE 3000
 
 CMD ["node", "server.js"]

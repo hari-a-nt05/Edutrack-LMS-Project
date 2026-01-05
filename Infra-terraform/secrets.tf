@@ -1,3 +1,3 @@
 resource "aws_secretsmanager_secret" "db_secret" {
-  name = "hari/db/postgres"
+  name = "${var.project_name}/db/postgres-v2"
 }
