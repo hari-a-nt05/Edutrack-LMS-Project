@@ -1,4 +1,4 @@
-name: Terraform - Infrastructure Provisioning
+name: Terraform-Infra
 
 on:
   workflow_dispatch:
