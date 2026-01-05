@@ -1,9 +1,9 @@
 terraform {
   backend "s3" {
-    bucket         = "lms-vicky-terraform-state-492000"
+    bucket         = "hari-terraform-state-edutrack"
     key            = "lms/dev/terraform.tfstate"
     region         = "us-east-1"
-    dynamodb_table = "terraform-state-lock"
+    dynamodb_table = "hari-terraform-lock"
     encrypt        = true
   }
 }
