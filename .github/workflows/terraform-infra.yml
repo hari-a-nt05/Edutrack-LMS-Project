@@ -22,21 +22,21 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Terraform Init
-        working-directory: terraform
+        working-directory: Infra-terraform
         run: terraform init -reconfigure
 
       - name: Terraform Format
-        working-directory: terraform
+        working-directory: Infra-terraform
         run: terraform fmt -check
 
       - name: Terraform Validate
-        working-directory: terraform
+        working-directory: Infra-terraform
         run: terraform validate
 
       - name: Terraform Plan
-        working-directory: terraform
+        working-directory: Infra-terraform
         run: terraform plan
 
       - name: Terraform Apply
-        working-directory: terraform
+        working-directory: Infra-terraform
         run: terraform apply -auto-approve -input=false
