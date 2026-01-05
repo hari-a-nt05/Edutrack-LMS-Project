@@ -3,7 +3,7 @@ variable "aws_region" {
 }
 
 variable "project_name" {
-  default = "lms-vicky"
+  default = "lms-hari"
 }
 
 variable "container_port" {
@@ -11,13 +11,13 @@ variable "container_port" {
 }
 
 variable "db_name" {
-  default = "lmsdb"
+  default = "haridb"
 }
 
 variable "db_user" {
-  default = "lmsuser"
+  default = "devopsuser"
 }
 
 variable "db_password" {
-  default = "Vignesh123!"
+  default = "hari2415"
 }

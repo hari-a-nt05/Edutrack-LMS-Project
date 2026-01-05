@@ -1,12 +1,18 @@
 resource "aws_db_subnet_group" "db_subnets" {
-  name       = "${var.project_name}-db-subnets"
+  name = "${lower(var.project_name)}-db-subnets"
+
   subnet_ids = aws_subnet.private[*].id
+
+  tags = {
+    Name = "${lower(var.project_name)}-db-subnets"
+  }
 }
 
 resource "aws_db_instance" "postgres" {
-  identifier = "${var.project_name}-db"
+  identifier = "${lower(var.project_name)}-db"
 
   engine         = "postgres"
+  engine_version = "15"
   instance_class = "db.t4g.micro"
 
   allocated_storage = 20
@@ -26,7 +32,7 @@ resource "aws_db_instance" "postgres" {
   deletion_protection     = false
 
   tags = {
-    Name        = "${var.project_name}-postgres"
+    Name        = "${lower(var.project_name)}-postgres"
     Environment = "production"
   }
 }

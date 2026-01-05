@@ -18,21 +18,18 @@ resource "aws_ecs_cluster" "cluster" {
 
 # Execution role (ECR pull + logs)
 resource "aws_iam_role" "ecs_exec_role" {
-  name = "${var.project_name}-ecs-exec"
+  name = "${var.project_name}-ecs-exec-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect    = "Allow"
-      Principal = { Service = "ecs-tasks.amazonaws.com" }
-      Action    = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = {
+        Service = "ecs-tasks.amazonaws.com"
+      }
+      Action = "sts:AssumeRole"
     }]
   })
-}
-
-resource "aws_iam_role_policy_attachment" "ecs_exec_policy" {
-  role       = aws_iam_role.ecs_exec_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
 # Task role (runtime permissions – DB, future secrets, etc.)
@@ -83,18 +80,19 @@ resource "aws_ecs_task_definition" "task" {
         }
       ]
 
+      # ✅ SAFE ENV VARS
       environment = [
-        {
-          name  = "DATABASE_URL"
-          value = "postgresql://${var.db_user}:${var.db_password}@${aws_db_instance.postgres.address}:5432/${var.db_name}?sslmode=require"
-        },
         {
           name  = "NODE_ENV"
           value = "production"
-        },
+        }
+      ]
+
+      # 🔐 DATABASE URL FROM SECRETS MANAGER
+      secrets = [
         {
-          name  = "NODE_TLS_REJECT_UNAUTHORIZED"
-          value = "0"
+          name      = "DATABASE_URL"
+          valueFrom = aws_secretsmanager_secret.db_secret.arn
         }
       ]
 
@@ -139,8 +137,9 @@ resource "aws_ecs_service" "service" {
   ]
 }
 
-resource "aws_iam_role_policy_attachment" "ecs_task_ssm" {
-  role       = aws_iam_role.ecs_task_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+resource "aws_iam_role_policy_attachment" "ecs_exec_policy" {
+  role       = aws_iam_role.ecs_exec_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
+
 
