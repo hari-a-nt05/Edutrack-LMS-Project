@@ -6,15 +6,11 @@ on:
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-
-  # ECR
   ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
-
-  # ECS
   ECS_CLUSTER: ${{ secrets.ECS_CLUSTER }}
   ECS_SERVICE: ${{ secrets.ECS_SERVICE }}
+  ECS_TASK_DEFINITION: ${{ secrets.ECS_TASK_DEFINITION }}
 
-  # Networking
   PRIVATE_SUBNET_1: ${{ secrets.PRIVATE_SUBNET_1 }}
   PRIVATE_SUBNET_2: ${{ secrets.PRIVATE_SUBNET_2 }}
   ECS_SG: ${{ secrets.ECS_SG }}
@@ -24,8 +20,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout
-      - name: Checkout repository
+      # 1️⃣ Checkout code
+      - name: Checkout repo
         uses: actions/checkout@v4
 
       # 2️⃣ Configure AWS
@@ -40,39 +36,29 @@ jobs:
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      # 🔍 DEBUG (VERY IMPORTANT)
-      - name: Debug environment values
-        run: |
-          echo "AWS_REGION=${AWS_REGION}"
-          echo "ECR_REPOSITORY=${ECR_REPOSITORY}"
-          echo "ECS_CLUSTER=${ECS_CLUSTER}"
-          echo "ECS_SERVICE=${ECS_SERVICE}"
-          echo "PRIVATE_SUBNET_1=${PRIVATE_SUBNET_1}"
-          echo "PRIVATE_SUBNET_2=${PRIVATE_SUBNET_2}"
-          echo "ECS_SG=${ECS_SG}"
-
-      # 4️⃣ Build & Push Docker Image
+      # 4️⃣ Build & Push Docker Image (EXPLICIT Dockerfile)
       - name: Build & Push Image
         run: |
           IMAGE_TAG=${GITHUB_SHA::7}
           IMAGE_URI=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}
 
-          echo "Building image: $IMAGE_URI:$IMAGE_TAG"
+          docker build -f Dockerfile \
+            -t ${IMAGE_URI}:${IMAGE_TAG} \
+            -t ${IMAGE_URI}:latest .
 
-          docker build -t $IMAGE_URI:$IMAGE_TAG -t $IMAGE_URI:latest .
-          docker push $IMAGE_URI:$IMAGE_TAG
-          docker push $IMAGE_URI:latest
+          docker push ${IMAGE_URI}:${IMAGE_TAG}
+          docker push ${IMAGE_URI}:latest
 
-      # 5️⃣ Run DB migrations (One-off ECS task)
+      # 5️⃣ Run DB migrations using ECS one-off task
       - name: Run DB migrations (ECS)
         run: |
           set -e
 
           TASK_ARN=$(aws ecs run-task \
-            --cluster "$ECS_CLUSTER" \
-            --task-definition "$ECS_SERVICE-task" \
+            --cluster ${ECS_CLUSTER} \
+            --task-definition ${ECS_TASK_DEFINITION} \
             --launch-type FARGATE \
-            --network-configuration "awsvpcConfiguration={subnets=[\"$PRIVATE_SUBNET_1\",\"$PRIVATE_SUBNET_2\"],securityGroups=[\"$ECS_SG\"],assignPublicIp=DISABLED}" \
+            --network-configuration "awsvpcConfiguration={subnets=[${PRIVATE_SUBNET_1},${PRIVATE_SUBNET_2}],securityGroups=[${ECS_SG}],assignPublicIp=DISABLED}" \
             --overrides '{"containerOverrides":[{"name":"app","command":["npm","run","migrate"]}]}' \
             --query 'tasks[0].taskArn' \
             --output text)
@@ -80,13 +66,13 @@ jobs:
           echo "Migration task started: $TASK_ARN"
 
           aws ecs wait tasks-stopped \
-            --cluster "$ECS_CLUSTER" \
-            --tasks "$TASK_ARN"
+            --cluster ${ECS_CLUSTER} \
+            --tasks ${TASK_ARN}
 
-      # 6️⃣ Deploy ECS Service
+      # 6️⃣ Deploy new image to ECS Service
       - name: Deploy ECS Service
         run: |
           aws ecs update-service \
-            --cluster "$ECS_CLUSTER" \
-            --service "$ECS_SERVICE" \
+            --cluster ${ECS_CLUSTER} \
+            --service ${ECS_SERVICE} \
             --force-new-deployment
