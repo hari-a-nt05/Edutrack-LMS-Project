@@ -3,7 +3,7 @@ variable "aws_region" {
 }
 
 variable "project_name" {
-  default = "lms-hariv1"
+  default = "lms-hariv2"
 }
 
 variable "container_port" {
