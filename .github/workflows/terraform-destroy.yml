@@ -1,4 +1,4 @@
-name: Terraform - Destroy Infrastructure
+name: Terraform Destroy
 
 on:
   workflow_dispatch:
@@ -22,9 +22,9 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Terraform Init
-        working-directory: terraform
+        working-directory: Infra-terraform
         run: terraform init -reconfigure
 
       - name: Terraform Destroy
-        working-directory: terraform
+        working-directory: Infra-terraform
         run: terraform destroy -auto-approve
