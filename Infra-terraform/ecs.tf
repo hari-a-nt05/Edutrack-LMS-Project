@@ -17,20 +17,24 @@ resource "aws_ecs_cluster" "cluster" {
 #################################
 
 # ✅ ECS EXECUTION ROLE (REQUIRED)
-resource "aws_iam_role" "ecs_exec_role" {
-  name = "${var.project_name}-ecs-exec"
+resource "aws_iam_role_policy" "ecs_exec_secrets_access" {
+  role = aws_iam_role.ecs_exec_role.id
 
-  assume_role_policy = jsonencode({
+  policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Principal = {
-        Service = "ecs-tasks.amazonaws.com"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret"
+        ]
+        Resource = aws_secretsmanager_secret.db_secret.arn
       }
-      Action = "sts:AssumeRole"
-    }]
+    ]
   })
 }
+
 
 # ✅ Allow ECS to pull images + write logs
 resource "aws_iam_role_policy_attachment" "ecs_exec_policy" {
@@ -96,20 +100,33 @@ resource "aws_ecs_task_definition" "task" {
       image     = "${aws_ecr_repository.repo.repository_url}:latest"
       essential = true
 
-      portMappings = [{
-        containerPort = var.container_port
-        protocol      = "tcp"
-      }]
+      portMappings = [
+        {
+          containerPort = var.container_port
+          protocol      = "tcp"
+        }
+      ]
 
-      environment = [{
-        name  = "NODE_ENV"
-        value = "production"
-      }]
+      # ✅ Runtime ENV vars
+      environment = [
+        {
+          name  = "NODE_ENV"
+          value = "production"
+        },
+        {
+          # 🔐 REQUIRED for AWS RDS SSL
+          name  = "NODE_TLS_REJECT_UNAUTHORIZED"
+          value = "0"
+        }
+      ]
 
-      secrets = [{
-        name      = "DATABASE_URL"
-        valueFrom = aws_secretsmanager_secret.db_secret.arn
-      }]
+      # 🔐 DATABASE URL from Secrets Manager
+      secrets = [
+        {
+          name      = "DATABASE_URL"
+          valueFrom = aws_secretsmanager_secret.db_secret.arn
+        }
+      ]
 
       logConfiguration = {
         logDriver = "awslogs"
