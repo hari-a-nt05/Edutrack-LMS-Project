@@ -6,7 +6,7 @@ resource "aws_ecr_repository" "repo" {
 }
 
 #################################
-# ECS Cluster
+# ECS CLUSTER
 #################################
 resource "aws_ecs_cluster" "cluster" {
   name = "${var.project_name}-cluster"
@@ -17,32 +17,28 @@ resource "aws_ecs_cluster" "cluster" {
 #################################
 
 # ✅ ECS EXECUTION ROLE (REQUIRED)
-resource "aws_iam_role_policy" "ecs_exec_secrets_access" {
-  role = aws_iam_role.ecs_exec_role.id
+resource "aws_iam_role" "ecs_exec_role" {
+  name = "${var.project_name}-ecs-exec"
 
-  policy = jsonencode({
+  assume_role_policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "secretsmanager:GetSecretValue",
-          "secretsmanager:DescribeSecret"
-        ]
-        Resource = aws_secretsmanager_secret.db_secret.arn
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Service = "ecs-tasks.amazonaws.com"
       }
-    ]
+      Action = "sts:AssumeRole"
+    }]
   })
 }
 
-
-# ✅ Allow ECS to pull images + write logs
+# ✅ Attach AWS managed policy (ECR pull + logs)
 resource "aws_iam_role_policy_attachment" "ecs_exec_policy" {
   role       = aws_iam_role.ecs_exec_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-# ✅ Allow ECS to read Secrets Manager
+# ✅ Allow ECS to read Secrets Manager (ONLY ONCE)
 resource "aws_iam_role_policy" "ecs_exec_secrets_access" {
   role = aws_iam_role.ecs_exec_role.id
 
@@ -59,7 +55,7 @@ resource "aws_iam_role_policy" "ecs_exec_secrets_access" {
   })
 }
 
-# ✅ TASK ROLE (for app runtime – future permissions)
+# ✅ ECS TASK ROLE (for app runtime – future permissions)
 resource "aws_iam_role" "ecs_task_role" {
   name = "${var.project_name}-ecs-task"
 
@@ -100,33 +96,26 @@ resource "aws_ecs_task_definition" "task" {
       image     = "${aws_ecr_repository.repo.repository_url}:latest"
       essential = true
 
-      portMappings = [
-        {
-          containerPort = var.container_port
-          protocol      = "tcp"
-        }
-      ]
+      portMappings = [{
+        containerPort = var.container_port
+        protocol      = "tcp"
+      }]
 
-      # ✅ Runtime ENV vars
       environment = [
         {
           name  = "NODE_ENV"
           value = "production"
         },
         {
-          # 🔐 REQUIRED for AWS RDS SSL
           name  = "NODE_TLS_REJECT_UNAUTHORIZED"
           value = "0"
         }
       ]
 
-      # 🔐 DATABASE URL from Secrets Manager
-      secrets = [
-        {
-          name      = "DATABASE_URL"
-          valueFrom = aws_secretsmanager_secret.db_secret.arn
-        }
-      ]
+      secrets = [{
+        name      = "DATABASE_URL"
+        valueFrom = aws_secretsmanager_secret.db_secret.arn
+      }]
 
       logConfiguration = {
         logDriver = "awslogs"
