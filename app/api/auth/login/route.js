@@ -1,78 +1,52 @@
-import { db } from "../../../../configs/db";
-import { USER_TABLE } from "../../../../configs/schema";
-import { verifyPassword, generateToken } from "../../../../lib/auth";
-import { eq } from "drizzle-orm";
-import { NextResponse } from "next/server";
+export const runtime = "nodejs"; // 🔴 REQUIRED (pg does NOT work on Edge)
 
-export const dynamic = 'force-dynamic';
+import { NextResponse } from "next/server";
+import { getDb } from "@/lib/db";
+import { users } from "@/configs/schema";
+import { eq } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 
 export async function POST(req) {
   try {
-    const { email, password } = await req.json();
+    const body = await req.json();
+    const { email, password } = body;
 
-    // Validate input
-    if (!email || !password) {
-      return NextResponse.json(
-        { error: "Email and password are required" },
-        { status: 400 }
-      );
-    }
+    const db = getDb(); // ✅ Initialize DB correctly
 
-    // Find user
-    const users = await db
+    const result = await db
       .select()
-      .from(USER_TABLE)
-      .where(eq(USER_TABLE.email, email))
-      .limit(1);
+      .from(users)
+      .where(eq(users.email, email));
 
-    if (users.length === 0) {
+    if (result.length === 0) {
       return NextResponse.json(
-        { error: "Invalid email or password" },
+        { error: "Invalid credentials" },
         { status: 401 }
       );
     }
 
-    const user = users[0];
+    const user = result[0];
+    const isValid = await bcrypt.compare(password, user.password);
 
-    // Verify password
-    const isValidPassword = await verifyPassword(password, user.password);
-
-    if (!isValidPassword) {
+    if (!isValid) {
       return NextResponse.json(
-        { error: "Invalid email or password" },
+        { error: "Invalid credentials" },
         { status: 401 }
       );
     }
 
-    // Generate token
-    const token = generateToken(user);
-
-    // Create response
-    const response = NextResponse.json(
-      {
-        success: true,
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-        },
+    return NextResponse.json({
+      success: true,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
       },
-      { status: 200 }
-    );
-
-    // Set cookie
-    response.cookies.set("auth-token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
     });
-
-    return response;
-  } catch (error) {
-    console.error("Login error:", error);
+  } catch (err) {
+    console.error("Login error:", err);
     return NextResponse.json(
-      { error: "Failed to login" },
+      { error: "Login failed" },
       { status: 500 }
     );
   }

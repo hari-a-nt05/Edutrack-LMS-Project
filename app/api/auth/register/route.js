@@ -1,78 +1,41 @@
-import { db } from "../../../../configs/db";
-import { USER_TABLE } from "../../../../configs/schema";
-import { hashPassword, generateToken } from "../../../../lib/auth";
-import { eq } from "drizzle-orm";
-import { NextResponse } from "next/server";
+export const runtime = "nodejs"; // 🔴 REQUIRED (pg does NOT work on Edge)
 
-export const dynamic = 'force-dynamic';
+import { NextResponse } from "next/server";
+import { getDb } from "@/lib/db";
+import { users } from "@/configs/schema";
+import { eq } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 
 export async function POST(req) {
   try {
-    const { name, email, password } = await req.json();
+    const body = await req.json();
+    const { name, email, password } = body;
 
-    // Validate input
-    if (!name || !email || !password) {
-      return NextResponse.json(
-        { error: "All fields are required" },
-        { status: 400 }
-      );
-    }
+    const db = getDb(); // ✅ Initialize DB correctly
 
-    // Check if user already exists
-    const existingUser = await db
+    const existing = await db
       .select()
-      .from(USER_TABLE)
-      .where(eq(USER_TABLE.email, email))
-      .limit(1);
+      .from(users)
+      .where(eq(users.email, email));
 
-    if (existingUser.length > 0) {
+    if (existing.length > 0) {
       return NextResponse.json(
-        { error: "User with this email already exists" },
+        { error: "User already exists" },
         { status: 400 }
       );
     }
 
-    // Hash password
-    const hashedPassword = await hashPassword(password);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
-    const newUser = await db
-      .insert(USER_TABLE)
-      .values({
-        name,
-        email,
-        password: hashedPassword,
-        isMember: false,
-      })
-      .returning();
-
-    // Generate token
-    const token = generateToken(newUser[0]);
-
-    // Create response with cookie
-    const response = NextResponse.json(
-      {
-        success: true,
-        user: {
-          id: newUser[0].id,
-          name: newUser[0].name,
-          email: newUser[0].email,
-        },
-      },
-      { status: 201 }
-    );
-
-    // Set cookie
-    response.cookies.set("auth-token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+    await db.insert(users).values({
+      name,
+      email,
+      password: hashedPassword,
     });
 
-    return response;
-  } catch (error) {
-    console.error("Register error:", error);
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("Register error:", err);
     return NextResponse.json(
       { error: "Failed to register user" },
       { status: 500 }
