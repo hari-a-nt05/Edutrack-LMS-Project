@@ -13,29 +13,49 @@ resource "aws_ecs_cluster" "cluster" {
 }
 
 #################################
-# IAM Roles
+# IAM ROLES
 #################################
 
-# Execution role (ECR pull + logs)
+# ✅ ECS EXECUTION ROLE (REQUIRED)
+resource "aws_iam_role" "ecs_exec_role" {
+  name = "${var.project_name}-ecs-exec"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Service = "ecs-tasks.amazonaws.com"
+      }
+      Action = "sts:AssumeRole"
+    }]
+  })
+}
+
+# ✅ Allow ECS to pull images + write logs
+resource "aws_iam_role_policy_attachment" "ecs_exec_policy" {
+  role       = aws_iam_role.ecs_exec_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+# ✅ Allow ECS to read Secrets Manager
 resource "aws_iam_role_policy" "ecs_exec_secrets_access" {
   role = aws_iam_role.ecs_exec_role.id
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "secretsmanager:GetSecretValue",
-          "secretsmanager:DescribeSecret"
-        ]
-        Resource = aws_secretsmanager_secret.db_secret.arn
-      }
-    ]
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "secretsmanager:GetSecretValue",
+        "secretsmanager:DescribeSecret"
+      ]
+      Resource = aws_secretsmanager_secret.db_secret.arn
+    }]
   })
 }
 
-# Task role (runtime permissions – DB, future secrets, etc.)
+# ✅ TASK ROLE (for app runtime – future permissions)
 resource "aws_iam_role" "ecs_task_role" {
   name = "${var.project_name}-ecs-task"
 
@@ -50,7 +70,7 @@ resource "aws_iam_role" "ecs_task_role" {
 }
 
 #################################
-# CloudWatch Logs
+# CLOUDWATCH LOGS
 #################################
 resource "aws_cloudwatch_log_group" "ecs" {
   name              = "/ecs/${var.project_name}"
@@ -58,7 +78,7 @@ resource "aws_cloudwatch_log_group" "ecs" {
 }
 
 #################################
-# ECS Task Definition
+# ECS TASK DEFINITION
 #################################
 resource "aws_ecs_task_definition" "task" {
   family                   = "${var.project_name}-task"
@@ -76,28 +96,20 @@ resource "aws_ecs_task_definition" "task" {
       image     = "${aws_ecr_repository.repo.repository_url}:latest"
       essential = true
 
-      portMappings = [
-        {
-          containerPort = var.container_port
-          protocol      = "tcp"
-        }
-      ]
+      portMappings = [{
+        containerPort = var.container_port
+        protocol      = "tcp"
+      }]
 
-      # ✅ SAFE ENV VARS
-      environment = [
-        {
-          name  = "NODE_ENV"
-          value = "production"
-        }
-      ]
+      environment = [{
+        name  = "NODE_ENV"
+        value = "production"
+      }]
 
-      # 🔐 DATABASE URL FROM SECRETS MANAGER
-      secrets = [
-        {
-          name      = "DATABASE_URL"
-          valueFrom = aws_secretsmanager_secret.db_secret.arn
-        }
-      ]
+      secrets = [{
+        name      = "DATABASE_URL"
+        valueFrom = aws_secretsmanager_secret.db_secret.arn
+      }]
 
       logConfiguration = {
         logDriver = "awslogs"
@@ -112,7 +124,7 @@ resource "aws_ecs_task_definition" "task" {
 }
 
 #################################
-# ECS Service
+# ECS SERVICE
 #################################
 resource "aws_ecs_service" "service" {
   name            = "${var.project_name}-service"
@@ -138,12 +150,4 @@ resource "aws_ecs_service" "service" {
   depends_on = [
     aws_lb_listener.frontend_listener
   ]
-
 }
-
-resource "aws_iam_role_policy_attachment" "ecs_exec_policy" {
-  role       = aws_iam_role.ecs_exec_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-}
-
-
