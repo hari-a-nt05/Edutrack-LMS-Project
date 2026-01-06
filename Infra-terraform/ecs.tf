@@ -17,17 +17,21 @@ resource "aws_ecs_cluster" "cluster" {
 #################################
 
 # Execution role (ECR pull + logs)
-resource "aws_iam_role" "ecs_exec_role" {
-  name = "${var.project_name}-ecs-exec"
-  assume_role_policy = jsonencode({
+resource "aws_iam_role_policy" "ecs_exec_secrets_access" {
+  role = aws_iam_role.ecs_exec_role.id
+
+  policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Principal = {
-        Service = "ecs-tasks.amazonaws.com"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret"
+        ]
+        Resource = aws_secretsmanager_secret.db_secret.arn
       }
-      Action = "sts:AssumeRole"
-    }]
+    ]
   })
 }
 
